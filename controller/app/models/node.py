@@ -1,5 +1,4 @@
 from models.base import BaseModel
-import time
 
 
 class Node(BaseModel):
