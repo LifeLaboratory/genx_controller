@@ -11,7 +11,7 @@ class Provider:
         return Sql.exec(query=query, args=args)
 
     @staticmethod
-    def inser_node(args):
+    def insert_node(args):
         query = """
             INSERT INTO Node (nodeId, data)
             VALUES({nodeId}, '{data}')
