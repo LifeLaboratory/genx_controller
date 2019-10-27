@@ -12,11 +12,11 @@ services:
   api:
     build: ./controller
     expose:
-      - 2021
+      - 1233
       - 7000
       - 6000
     ports:
-      - 2021:2021
+      - 1233:1233
       - 7000:7000
       - 6000:6000
     restart: always
