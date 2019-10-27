@@ -1,4 +1,4 @@
-CREATE TYPE statuses AS ENUM ('pending', 'scheduled', 'succeded');
+CREATE TYPE statuses AS ENUM ('running', 'blocked');
 
 
 CREATE TABLE Node(

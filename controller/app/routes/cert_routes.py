@@ -1,4 +1,4 @@
-from flask import request,  abort, Blueprint
+from flask import request, Blueprint
 from db.cert import Provider
 from models.cert import Cert
 cert = Blueprint('cert', __name__)
