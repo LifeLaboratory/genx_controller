@@ -13,9 +13,23 @@ class Provider:
     @staticmethod
     def insert_node(args):
         query = """
-            INSERT INTO Node (nodeId, data)
-            VALUES({nodeId}, '{data}')
+            INSERT INTO Node (ip,status)
+            VALUES('{ip}', 'running')
             returning id
         """
 
         return Sql.exec(query=query, args=args)
+
+    @staticmethod
+    def update_status(args):
+        query_first = """
+        UPDATE NODE Set status = 'disabled'
+        """
+        Sql.exec(query=query_first, args={})
+        for ip in args:
+            query = """
+            UPDATE NODE SET status = 'running'
+            where ip = '{ip}'
+            """
+            Sql.exec(query,args={'ip':ip})
+        return "OK"

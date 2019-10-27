@@ -13,8 +13,12 @@ services:
     build: ./controller
     expose:
       - 2021
+      - 7000
+      - 6000
     ports:
       - 2021:2021
+      - 7000:7000
+      - 6000:6000
     restart: always
     depends_on:
       - db

@@ -6,11 +6,17 @@ from uuid import uuid4
 from time import time
 from twisted.internet.task import LoopingCall
 import config as cfg
+from models.cert import Cert
 BOOTSTRAP_IP = cfg.host
 BOOTSTRAP_PORT = cfg.port
 genom = "123"
 status = True
 generate_nodeid = lambda: str(uuid4())
+valid_ips = []
+
+def add_node(ip):
+    from db.node import Provider
+    Provider.insert_node({'ip':ip})
 
 def gotProtocol(p):
     """The callback to start the protocol exchange. We let connecting
@@ -30,8 +36,10 @@ class MyProtocol(Protocol):
         print("Connection from", self.transport.getPeer())
 
     def connectionLost(self, reason):
-        if self.remote_nodeid in self.factory.peers:
-            self.factory.peers.pop(self.remote_nodeid)
+        if self.remote_ip.host in self.factory.peers:
+            global valid_ips
+            self.factory.peers.pop(self.remote_ip.host)
+            valid_ips.remove(self.remote_ip.host)
             self.lc_ping.stop()
         print(self.nodeid, "disconnected")
 
@@ -44,7 +52,7 @@ class MyProtocol(Protocol):
             elif msgtype == "ping":
                 self.handle_ping()
             elif msgtype == "pong":
-                self.handle_pong()
+                self.handle_pong(json.loads(line)['cert'])
             elif msgtype == "get_list_request":
                 self.handle_get_list_request(json.loads(line)['data'])
             elif msgtype == "get_list_response":
@@ -82,8 +90,20 @@ class MyProtocol(Protocol):
     def handle_ping(self):
         self.send_pong()
 
-    def handle_pong(self):
+    def handle_pong(self, cert):
         print("Got pong from", self.remote_nodeid)
+        remote_cert = Cert(cert)
+        status = Cert.check_expired_time(remote_cert)
+        print("Cert validation", status)
+        if status is False:
+            if self.remote_ip.host in self.factory.peers:
+                self.factory.peers.pop(self.remote_ip.host)
+        else:
+            if self.remote_ip.host not in self.factory.peers:
+                self.factory.peers[self.remote_ip.host] = self.remote_ip.port
+                add_node(self.remote_ip.host)
+        global valid_ips
+        valid_ips = list(self.factory.peers.keys())
         ###Update the timestamp
         self.lastping = time()
 
@@ -97,6 +117,7 @@ class MyProtocol(Protocol):
         print("Peers", peers)
 
     def handle_hello(self, hello):
+        global valid_ips
         hello = json.loads(hello)
         self.remote_nodeid = hello["nodeid"]
         if self.remote_nodeid == self.nodeid:
@@ -104,6 +125,8 @@ class MyProtocol(Protocol):
             self.transport.loseConnection()
         else:
             self.factory.peers[self.remote_ip.host] = self.remote_ip.port
+            valid_ips = list(self.factory.peers.keys())
+            add_node(self.remote_ip.host)
             self.lc_ping.start(60)
 
     def handle_task_request(self,status):
